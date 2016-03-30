@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+	<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/angular.js/1.2.16/angular-resource.min.js"></script>
+	<script src="https://code.jquery.com/jquery-1.12.2.min.js"   integrity="sha256-lZFHibXzMHo3GGeehn1hudTAP3Sc0uKXBXAzHX1sjtk="   crossorigin="anonymous"></script>
+	<style type="text/css">
+		.done-true {
+			text-decoration: line-through;
+		}
+		
+		.todo-list {
+			max-width: 480px;
+		}
+		
+		.todo-list input {
+			max-width: 100%;
+			
+		}
+		
+		.todo-list input.btn {
+			float: right;
+		}
+		
+		.todo-list input.form-control {
+			margin-bottom: 5px;
+		}
+	</style>
+
+	<script>
+	 
+	var app = angular.module('myApp', ['ngResource']);
+
+	app.factory('Todos', ['$resource', function($resource) {
+	  return $resource('http://localhost:3000/api/todos/:id', null, {
+	    update: {
+	      method: 'PUT' // this method issues a PUT request
+	    }
+	  });	  
+	}]);
+
+	app.controller('todoCtrl', function($scope, Todos) {
+	    //$scope.todoList = [{todoText:'Clean House', done:false, edit:false}];
+	    $scope.todoEditMode = [];
+		$scope.todoList = Todos.query();
+		
+		
+	    $scope.todoAdd = function() {
+	        if(!$scope.todoInput || $scope.todoInput.length < 1) return;
+	        var todo = new Todos({ todoText: $scope.todoInput, done: false });
+	
+	        todo.$save(function(){
+		        $scope.todoList.push({todoText:$scope.todoInput, done:false});
+		        $scope.todoInput = "";
+	        });
+
+	    };
+	    
+	    $scope.todoRemove = function(index) {
+            var todo = $scope.todoList[index];
+            Todos.remove({id: todo._id}, function(){
+	        	$scope.todoList.splice(index, 1);
+	        });
+	    };
+	    
+	    $scope.todoUpdate = function(index) {
+	        var todo = $scope.todoList[index];
+
+	        Todos.update({id: todo._id}, todo);
+
+	    };
+	
+	    $scope.todoEdit = function(index, $event) {
+
+	        if(!$scope.todoEditMode[index] && $event.target.type != "checkbox") {
+
+	        	$($event.target).parent().find('input.editText').focus();
+
+	        } else {
+	        	$scope.todoUpdate(index);
+	        }
+	        
+	        if($event.target.type != "checkbox") {
+
+	        	$scope.todoEditMode[index] = !$scope.todoEditMode[index];
+
+	        }
+	        
+	    };
+	
+	    $scope.cancelEdit = function(index) {
+
+	        $scope.todoEditMode[index] = false;
+	    };
+	
+	});
+	</script>
+
+</head>
+
+<body ng-app="myApp" ng-controller="todoCtrl">
+
+
+<div class="todo-list container-fluid">
+
+	<h2>Todo List</h2>
+	
+	<ul class="list-group">
+	<li ng-repeat="todo in todoList" class="list-group-item">
+	    <input type="checkbox" ng-model="todo.done" ng-click="todoEdit($index, $event)"> 
+	    <span ng-bind="todo.todoText" ng-show="!todoEditMode[$index]" class="done-{{todo.done}}"></span>
+	    <form ng-submit="todoEdit($index, $event)" ng-show="todoEditMode[$index]">
+	    	<input class="editText form-control" type="text" ng-model="todo.todoText" size="50" placeholder="" />	
+	    </form>
+	    
+	    <button ng-click="todoEdit($index, $event)" ng-show="!todoEditMode[$index]" class="btn">Edit</button>
+	    <button ng-click="cancelEdit($index)" ng-show="todoEditMode[$index]" class="btn">Cancel</button>
+	    <button ng-click="todoRemove($index)" class="btn">Delete</button>
+	</li>
+	</ul>
+	
+	<form ng-submit="todoAdd()">
+	    <input type="text" ng-model="todoInput" size="50" placeholder="Add New" class="form-control">
+	    <input type="submit" value="Add" class="btn">
+	</form>
+
+</div>
+
+
+
+</body>
+</html>
